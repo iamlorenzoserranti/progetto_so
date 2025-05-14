@@ -12,6 +12,8 @@
 #define SHM_NAME "/my_shared_memory_so"
 
 
+int* next_number_shm = NULL;
+
 void valida_parametri(int visualizzatori, int N){
     if (visualizzatori <= 0 || visualizzatori >= MAX_PROCESSI)
     {
@@ -66,7 +68,4 @@ int shm_allocate(){
         perror("Errore in mmap\n");
         exit(EXIT_FAILURE);
     }
-    
-    
-    
 }
