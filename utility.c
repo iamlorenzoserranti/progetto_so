@@ -75,6 +75,7 @@ int shmAllocate(){
     }
 }
 
+//CIAOOOOOOOOOO
 
 /*
     funzione che consente al visualizzatore di accedere al sem, scrivere sul file il proprio PID,
