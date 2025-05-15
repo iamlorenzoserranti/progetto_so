@@ -5,6 +5,8 @@
 #include <sys/mman.h>   // shm_open, mmap, ftruncate, PROT_*, MAP_*
 #include <sys/stat.h>   // S_IRUSR, S_IWUSR
 #include <unistd.h>     // ftruncate, close
+#include <sys/types.h>
+#include <signal.h>
 
 
 #define MAX_PROCESSI 100
@@ -13,8 +15,9 @@
 
 
 int* next_number_shm = NULL;
+sigset_t sigset;
 
-void valida_parametri(int visualizzatori, int N){
+int validaParametri(int visualizzatori, int N){
     if (visualizzatori <= 0 || visualizzatori >= MAX_PROCESSI)
     {
         fprintf(stderr, "Errore: numero di visualizzatori non valido (1 - %d).\n", MAX_PROCESSI);
@@ -25,7 +28,7 @@ void valida_parametri(int visualizzatori, int N){
         fprintf(stderr, "Errore: N deve essere un intero positivo <= %d, \n", MAX_N);
         exit(EXIT_FAILURE);
     }
-    
+    return 0;
 }
 
 int setInputs(int argc, char *argv[], int *visualizzatori, int *N){
@@ -43,11 +46,10 @@ int setInputs(int argc, char *argv[], int *visualizzatori, int *N){
         printf("Inserisci N massimo d visualizzare (max: %d): ", MAX_N);
         scanf("%d", N);
     }
-    valida_parametri(*visualizzatori, *N);
-
+    return validaParametri(*visualizzatori, *N);
 }
 
-int shm_allocate(){
+int shmAllocate(){
     //creazione della memoria condivisa con permessi lettura/scrittura
     int shm = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (shm == -1)
@@ -66,6 +68,24 @@ int shm_allocate(){
     if (next_number_shm == MAP_FAILED)
     {
         perror("Errore in mmap\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void childrenHandler(int sig)
+{
+    switch (sig)
+    {
+    case SIGUSR1:
+        childenSharedIncrement();
+        break;
+    case SIGUSR2:
+        childrenStop();
+        break;
+    case SIGTSTP:
+        break;
+    default:
+        perror("Errore: segnale inattesso.\n");
         exit(EXIT_FAILURE);
     }
 }

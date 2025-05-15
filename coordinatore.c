@@ -1,35 +1,52 @@
 #include <stdio.h>
 #include "utility.h"
 #include <unistd.h>
-#include <sys/types.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <signal.h>
 
 
 int visualizzatori;
 int N;
+pid_t* children = NULL;
+int sig;
 
 int main(int argc, char *argv[])
 {
     pid_t pid;
 
-    setInputs(argc, argv, &visualizzatori, &N);
-    shm_allocate();
+    if (setInputs(argc, argv, &visualizzatori, &N) != 0)
+    {
+        fprintf(stderr, "Parametri non validi. Uscita.\n");
+        exit(EXIT_FAILURE);
+    }
+    shmAllocate();
+
+    //puntatore per contenere i pid dei processi figli
+    children = (pid_t *)malloc(sizeof(pid_t) * visualizzatori);
     
     *next_number_shm = 1 ;
 
     for (int i = 0; i < visualizzatori; i++)
     {
-        pid = fork(); //crea nuovo processo
+        pid = fork(); //crea nuovo processo 
         if (pid < 0)
         {
             perror("fork fallita\n");
             exit(EXIT_FAILURE);
         }
-        else if (pid == 0)
+        else if (pid == 0) //figlio 
         {
-            // Codice del figlio
-            printf("Figlio %d: PID = %d, PPID = %d\n", i, getpid(), getppid());
-            exit(0); // termina il figlio dopo aver stampato
+            while (1)
+            {
+                sigwait(&sigset, &sig);
+                childrenHandler(sig); //comportamento visualizzatore 
+            }
+            
+        }
+        else
+        {
+            children[i] = pid;
         }
     }
 
