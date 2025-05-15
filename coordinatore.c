@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <semaphore.h>
+
 
 
 int visualizzatori;

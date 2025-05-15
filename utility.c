@@ -7,15 +7,18 @@
 #include <unistd.h>     // ftruncate, close
 #include <sys/types.h>
 #include <signal.h>
+#include <semaphore.h>
+
 
 
 #define MAX_PROCESSI 100
 #define MAX_N 10000
 #define SHM_NAME "/my_shared_memory_so"
 
-
+//definizone variabili, le dichiarazione stanno in utility.h
 int* next_number_shm = NULL;
 sigset_t sigset;
+sem_t* sem = NULL;
 
 int validaParametri(int visualizzatori, int N){
     if (visualizzatori <= 0 || visualizzatori >= MAX_PROCESSI)
@@ -72,15 +75,50 @@ int shmAllocate(){
     }
 }
 
+
+/*
+    funzione che consente al visualizzatore di accedere al sem, scrivere sul file il proprio PID,
+    incrementare next_number_shm, avvisare il process. padre di aver finito e rilascia il sem. 
+*/
+void executeChildrenTurn(){
+    sem_wait(sem);
+
+    printf("%d\n", *next_number_shm);
+
+    FILE *file = fopen("vis_pid.txt", "a+");
+    if (file == NULL)
+    {
+        perror("Errore: fopen.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(file, "%d\n", getpid());
+    fclose(file);
+    (*next_number_shm)++;
+
+    kill(getppid(), SIGUSR1);//ora il padre sa che il figlio ha terminato 
+    
+    if (*next_number_shm > N)
+    {
+        sem_post(sem);
+        exit(EXIT_SUCCESS);
+    }
+    sem_post(sem);
+}
+
+/*
+crea childrenStop()
+*/
+
 void childrenHandler(int sig)
 {
     switch (sig)
     {
     case SIGUSR1:
-        childenSharedIncrement();
+        executeChildrenTurn();
         break;
     case SIGUSR2:
-        childrenStop();
+        //childrenStop();
         break;
     case SIGTSTP:
         break;
