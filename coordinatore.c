@@ -16,6 +16,7 @@ int sig;
 int main(int argc, char *argv[])
 {
     pid_t pid;
+    initialize();
 
     if (setInputs(argc, argv, &visualizzatori, &N) != 0)
     {
@@ -39,8 +40,10 @@ int main(int argc, char *argv[])
         }
         else if (pid == 0) //figlio 
         {
+            printf("fuori dal ciclo infinito\n");
             while (1)
             {
+                printf("dentro dal ciclo infinito\n");
                 sigwait(&sigset, &sig);
                 childrenHandler(sig); //comportamento visualizzatore 
             }

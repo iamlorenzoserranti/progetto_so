@@ -8,6 +8,9 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <semaphore.h>
+#include <time.h>
+#include <string.h>
+
 
 
 
@@ -19,6 +22,9 @@
 int* next_number_shm = NULL;
 sigset_t sigset;
 sem_t* sem = NULL;
+
+
+int stop = 0;
 
 int validaParametri(int visualizzatori, int N){
     if (visualizzatori <= 0 || visualizzatori >= MAX_PROCESSI)
@@ -52,6 +58,55 @@ int setInputs(int argc, char *argv[], int *visualizzatori, int *N){
     return validaParametri(*visualizzatori, *N);
 }
 
+void kill_children()
+{
+    stop = 0;
+    for (size_t i = 0; i < visualizzatori; i++)
+        kill(children[i], SIGUSR2);
+}
+
+void handleSigterm()
+{
+    struct sigaction sigterm_action;
+    memset(&sigterm_action, 0, sizeof(sigterm_action));
+
+    sigterm_action.sa_handler = kill_children;
+    sigaction(SIGTERM, &sigterm_action, NULL);
+}
+
+void handleSigint()
+{
+    struct sigaction sigint_action;
+    memset(&sigint_action, 0, sizeof(sigint_action));
+
+    // Imposta il gestore di SIGINT per ignorare il segnale
+    sigint_action.sa_handler = SIG_IGN;
+    sigaction(SIGINT, &sigint_action, NULL);
+}
+
+//funzione di inizilizzazione di: segnali, sem, e i file
+int initialize(){
+     sigemptyset(&sigset);                  // svuotamento del set
+    sigaddset(&sigset, SIGUSR1);           // aggiunta al set di SIGUSR1
+    sigaddset(&sigset, SIGUSR2);           // aggiunta al set di SIGUSR2
+    sigaddset(&sigset, SIGTSTP);           // aggiunta al set di SIGUSR2
+    sigprocmask(SIG_BLOCK, &sigset, NULL); // Mascheramento/blocco di SIGUSR1, SIGINT
+
+    handleSigterm();
+    handleSigint();
+    srand(time(NULL));
+
+    FILE *file;
+    // Apre file in modalità scrittura e lo tronca
+    file = fopen("coord_pid.txt", "w");
+    fclose(file);
+    file = fopen("vis_pid.txt", "w");
+    fclose(file);
+
+    return 0;
+}
+
+
 int shmAllocate(){
     //creazione della memoria condivisa con permessi lettura/scrittura
     int shm = shm_open(SHM_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
@@ -75,17 +130,16 @@ int shmAllocate(){
     }
 }
 
-//CIAOOOOOOOOOO
-
 /*
     funzione che consente al visualizzatore di accedere al sem, scrivere sul file il proprio PID,
     incrementare next_number_shm, avvisare il process. padre di aver finito e rilascia il sem. 
 */
 void executeChildrenTurn(){
+    printf("Sto per aprire il file vis_pid.txt\n");
     sem_wait(sem);
 
     printf("%d\n", *next_number_shm);
-
+    printf("Sto per aprire il file vis_pid.txt\n");
     FILE *file = fopen("vis_pid.txt", "a+");
     if (file == NULL)
     {
@@ -107,19 +161,20 @@ void executeChildrenTurn(){
     sem_post(sem);
 }
 
-/*
-crea childrenStop()
-*/
+void childrenStop(){
+    exit(EXIT_SUCCESS);
+}
 
 void childrenHandler(int sig)
 {
     switch (sig)
     {
     case SIGUSR1:
+    printf("ciaoo\n");
         executeChildrenTurn();
         break;
     case SIGUSR2:
-        //childrenStop();
+        childrenStop();
         break;
     case SIGTSTP:
         break;
