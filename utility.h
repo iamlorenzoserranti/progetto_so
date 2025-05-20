@@ -5,8 +5,6 @@
 #include <signal.h>
 #include <semaphore.h>
 
-
-
 extern int visualizzatori, N;
 extern pid_t* children;
 extern sigset_t sigset;
@@ -14,10 +12,9 @@ extern int sig;
 extern sem_t* sem;
 extern pid_t active_pid;
 
-
 extern int* next_number_shm;
 
-int setInputs(int argc, char *argv[], int *visualizzatori, int *N);
+int richiestaInputs(int argc, char *argv[], int *visualizzatori, int *N);
 int shmAllocate();
 void childrenHandler();
 int initialize();

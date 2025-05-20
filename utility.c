@@ -15,7 +15,7 @@
 
 
 #define MAX_PROCESSI 100
-#define MAX_N 10000
+#define MAX_N __INT_MAX__
 #define SHM_NAME "/my_shared_memory_so"
 #define SEM_NAME "/semaforo_so_project"
 
@@ -28,8 +28,37 @@ sem_t* sem = NULL;
 
 int stop = 0;
 
+int validaInput(const char *prompt, int *value, int max) {
+    char buffer[128];
+    int res;
+
+    do {
+        // Mostra la richiesta all'utente
+        printf("%s", prompt);
+
+        // Legge una riga di input da tastiera (fino a 127 caratteri)
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL)
+            return -1;
+
+        // Prova a leggere un intero dalla riga appena letta
+        res = sscanf(buffer, "%d", value);
+
+        // Controlla se:
+        // - è stato letto effettivamente un numero
+        // - il numero è > 0
+        // - il numero è <= max
+        if (res != 1 || *value <= 0 || *value > max) {
+            printf("Valore non valido. Riprova.\n");
+            res = -1; // forza il ciclo a ripetere
+        }
+
+    } while (res != 1); // ripeti finché non leggi un numero valido
+
+    return 0;
+}
+
 int validaParametri(int visualizzatori, int N){
-    if (visualizzatori <= 0 || visualizzatori >= MAX_PROCESSI)
+    if (visualizzatori <= 0 || visualizzatori > MAX_PROCESSI)
     {
         fprintf(stderr, "Errore: numero di visualizzatori non valido (1 - %d).\n", MAX_PROCESSI);
         exit(EXIT_FAILURE);
@@ -42,41 +71,44 @@ int validaParametri(int visualizzatori, int N){
     return 0;
 }
 
-int setInputs(int argc, char *argv[], int *visualizzatori, int *N){
+int richiestaInputs(int argc, char *argv[], int *visualizzatori, int *N){
+    if (argc > 3) {
+        fprintf(stderr, "Uso corretto: %s [visualizzatori N]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
     if (argc == 3)
     {
-        //per nonf amri dare segmentation fault con ./coordinatore devo passargli anche i due argomenti 
         *visualizzatori = atoi(argv[1]); //atoi() converte da stringa a intero
         *N = atoi(argv[2]);
     }
     else
     {
-        printf("Inserisci numero di visualizzatori (max: %d): ", MAX_PROCESSI);
-        scanf("%d", visualizzatori);
-
-        printf("Inserisci N massimo d visualizzare (max: %d): ", MAX_N);
-        scanf("%d", N);
+        validaInput("Inserisci numero di visualizzatori (max: %d): ", visualizzatori, MAX_PROCESSI);
+        validaInput("Inserisci N massimo da visualizzare (max: %d): ", N, MAX_N);
     }
+
     return validaParametri(*visualizzatori, *N);
 }
 
-void kill_children()
+//avvisa i processi figli di terminare
+void killChildren()
 {
     stop = 0;
-    for (size_t i = 0; i < visualizzatori; i++)
+    for (size_t i = 0; i < visualizzatori; i++){
         kill(children[i], SIGUSR2);
+    }
 }
 
-void handleSigterm()
+void sigtermHandle()
 {
     struct sigaction sigterm_action;
     memset(&sigterm_action, 0, sizeof(sigterm_action));
 
-    sigterm_action.sa_handler = kill_children;
+    sigterm_action.sa_handler = killChildren;
     sigaction(SIGTERM, &sigterm_action, NULL);
 }
 
-void handleSigint()
+void sigintHandle()
 {
     struct sigaction sigint_action;
     memset(&sigint_action, 0, sizeof(sigint_action));
@@ -88,14 +120,14 @@ void handleSigint()
 
 //funzione di inizilizzazione di: segnali, sem, e i file
 int initialize(){
-     sigemptyset(&sigset);                  // svuotamento del set
+    sigemptyset(&sigset);                  // svuotamento del set
     sigaddset(&sigset, SIGUSR1);           // aggiunta al set di SIGUSR1
     sigaddset(&sigset, SIGUSR2);           // aggiunta al set di SIGUSR2
     sigaddset(&sigset, SIGTSTP);           // aggiunta al set di SIGUSR2
     sigprocmask(SIG_BLOCK, &sigset, NULL); // Mascheramento/blocco di SIGUSR1, SIGINT
 
-    handleSigterm();
-    handleSigint();
+    sigtermHandle();
+    sigintHandle();
     srand(time(NULL));
 
     FILE *file;
@@ -223,12 +255,4 @@ void pidWritten(pid_t pid) {
         fprintf(file, "%d\n", pid);
         fclose(file);
     }
-}
-//
-
-void killChildren()
-{
-    stop = 0;
-    for (size_t i = 0; i < visualizzatori; i++)
-        kill(children[i], SIGUSR2);
 }

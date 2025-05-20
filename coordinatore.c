@@ -18,12 +18,7 @@ int main(int argc, char *argv[])
 {
     pid_t pid;
     initialize();
-
-    if (setInputs(argc, argv, &visualizzatori, &N) != 0)
-    {
-        fprintf(stderr, "Parametri non validi. Uscita.\n");
-        exit(EXIT_FAILURE);
-    }
+    richiestaInputs(argc, argv, &visualizzatori, &N);
     shmAllocate();
     createSemaforo();
 
