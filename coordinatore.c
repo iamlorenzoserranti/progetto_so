@@ -12,6 +12,7 @@ int visualizzatori;
 int N;
 pid_t* children = NULL;
 int sig;
+pid_t active_pid;
 
 int main(int argc, char *argv[])
 {
@@ -24,6 +25,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     shmAllocate();
+    createSemaforo();
 
     //puntatore per contenere i pid dei processi figli
     children = (pid_t *)malloc(sizeof(pid_t) * visualizzatori);
@@ -40,7 +42,6 @@ int main(int argc, char *argv[])
         }
         else if (pid == 0) //figlio 
         {
-            printf("fuori dal ciclo infinito\n");
             while (1)
             {
                 printf("dentro dal ciclo infinito\n");
@@ -54,6 +55,19 @@ int main(int argc, char *argv[])
             children[i] = pid;
         }
     }
+
+    //sblocco del semaforo
+    sem_post(sem);
+
+    for (size_t i = 0; i < N; i++)
+    {
+        assignView();
+        waitConfirm();
+        pidWritten();
+    }
+
+    killChildren();
+    
 
     
     return 0;

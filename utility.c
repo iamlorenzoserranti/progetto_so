@@ -17,6 +17,8 @@
 #define MAX_PROCESSI 100
 #define MAX_N 10000
 #define SHM_NAME "/my_shared_memory_so"
+#define SEM_NAME "/semaforo_so_project"
+
 
 //definizone variabili, le dichiarazione stanno in utility.h
 int* next_number_shm = NULL;
@@ -135,11 +137,9 @@ int shmAllocate(){
     incrementare next_number_shm, avvisare il process. padre di aver finito e rilascia il sem. 
 */
 void executeChildrenTurn(){
-    printf("Sto per aprire il file vis_pid.txt\n");
     sem_wait(sem);
 
     printf("%d\n", *next_number_shm);
-    printf("Sto per aprire il file vis_pid.txt\n");
     FILE *file = fopen("vis_pid.txt", "a+");
     if (file == NULL)
     {
@@ -170,7 +170,6 @@ void childrenHandler(int sig)
     switch (sig)
     {
     case SIGUSR1:
-    printf("ciaoo\n");
         executeChildrenTurn();
         break;
     case SIGUSR2:
@@ -182,4 +181,54 @@ void childrenHandler(int sig)
         perror("Errore: segnale inattesso.\n");
         exit(EXIT_FAILURE);
     }
+}
+
+//rende disponibile il semaforo alla variabile globale
+int createSemaforo(){
+    sem = sem_open(SEM_NAME, O_CREAT, S_IRWXU, 0);
+    if (sem == SEM_FAILED)
+    {
+        perror("Errore in sem_open.\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    return 0;
+}
+
+void stopProcess(int sig)
+{
+    do
+    {
+        sigwait(&sigset, &sig);
+    } while (sig != SIGTSTP);
+}
+
+//i: operazioni coordinatore
+void assignView() {
+    size_t j = rand() % visualizzatori;
+    active_pid = children[j];
+    kill(active_pid, SIGUSR1);
+}
+
+void waitConfirm() {
+    sigwait(&sigset, &sig);
+    if (sig == SIGTSTP) {
+        stopProcess(sig);
+    }
+}
+
+void pidWritten(pid_t pid) {
+    FILE *file = fopen("coord_pid.txt", "a");
+    if (file != NULL) {
+        fprintf(file, "%d\n", pid);
+        fclose(file);
+    }
+}
+//
+
+void killChildren()
+{
+    stop = 0;
+    for (size_t i = 0; i < visualizzatori; i++)
+        kill(children[i], SIGUSR2);
 }
