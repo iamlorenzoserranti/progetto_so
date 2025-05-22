@@ -18,6 +18,10 @@ int main(int argc, char *argv[])
 {
     pid_t pid;
     initialize();
+    
+    // pthread_t tid;
+    // pthread_create(&tid, NULL, inputThread, NULL);
+    
     richiestaInputs(argc, argv, &visualizzatori, &N);
     shmAllocate();
     createSemaforo();
@@ -56,9 +60,12 @@ int main(int argc, char *argv[])
 
     for (size_t i = 0; i < N; i++)
     {
+        // while (pausa) {
+        // pause(); // attesa passiva di un segnale
+        // }
         assignView();
         waitConfirm();
-        pidWritten();
+        pidWritten(active_pid);
     }
 
     killChildren();

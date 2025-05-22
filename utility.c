@@ -12,8 +12,6 @@
 #include <string.h>
 
 
-
-
 #define MAX_PROCESSI 100
 #define MAX_N __INT_MAX__
 #define SHM_NAME "/my_shared_memory_so"
@@ -25,6 +23,7 @@ int* next_number_shm = NULL;
 sigset_t sigset;
 sem_t* sem = NULL;
 
+// extern volatile sig_atomic_t pausa = 0;
 
 int stop = 0;
 
@@ -226,6 +225,24 @@ int createSemaforo(){
     
     return 0;
 }
+
+// //sistema pausa/ripresa senza chiamate di sistema 
+// void* inputThread(void* arg) {
+//     printf("[COMANDI] Premi 'p' per pausa, 'r' per ripresa: ");
+//     char comando;
+//     while (1) {
+//         comando = getchar();
+//         if (comando == 'p') {
+//             pausa = 1;
+//             printf("[PAUSA] Visualizzazione sospesa.\n");
+//         } else if (comando == 'r') {
+//             pausa = 0;
+//             printf("[RIPRESA] Visualizzazione ripresa.\n");
+//         }
+//     }
+//     return NULL;
+// }
+
 
 void stopProcess(int sig)
 {

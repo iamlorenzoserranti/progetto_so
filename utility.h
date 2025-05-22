@@ -11,6 +11,7 @@ extern sigset_t sigset;
 extern int sig;
 extern sem_t* sem;
 extern pid_t active_pid;
+// extern volatile sig_atomic_t pausa;
 
 extern int* next_number_shm;
 
@@ -26,5 +27,6 @@ void waitConfirm();
 void pidWritten();
 void stopProcess();
 void killChildren();
+// void *inputThread();
 
 #endif
