@@ -14,8 +14,7 @@
 
 #define MAX_PROCESSI 100
 #define MAX_N __INT_MAX__
-#define SHM_NAME "/my_shared_memory_so"
-#define SEM_NAME "/semaforo_so_project"
+
 
 
 //definizone variabili, le dichiarazione stanno in utility.h

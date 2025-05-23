@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <semaphore.h>
+#include <sys/mman.h>
+#include <sys/wait.h>
 
 
 
@@ -43,7 +45,6 @@ int main(int argc, char *argv[])
         {
             while (1)
             {
-                printf("dentro dal ciclo infinito\n");
                 sigwait(&sigset, &sig);
                 childrenHandler(sig); //comportamento visualizzatore 
             }
@@ -69,8 +70,18 @@ int main(int argc, char *argv[])
     }
 
     killChildren();
-    
 
+
+    for (size_t i = 0; i < visualizzatori; i++){
+        wait(NULL);
+    }
+
+    sem_close(sem);
+    sem_unlink(SEM_NAME);
+    munmap(next_number_shm, sizeof(int));
+    shm_unlink(SHM_NAME);
+
+    exit(EXIT_SUCCESS);
     
     return 0;
 }    

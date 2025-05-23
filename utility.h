@@ -5,6 +5,9 @@
 #include <signal.h>
 #include <semaphore.h>
 
+#define SHM_NAME "/my_shared_memory_so"
+#define SEM_NAME "/semaforo_so_project"
+
 extern int visualizzatori, N;
 extern pid_t* children;
 extern sigset_t sigset;
