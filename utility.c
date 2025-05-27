@@ -10,6 +10,7 @@
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
+#include <pthread.h>
 
 
 #define MAX_PROCESSI 100
@@ -22,7 +23,8 @@ int* next_number_shm = NULL;
 sigset_t sigset;
 sem_t* sem = NULL;
 
-// extern volatile sig_atomic_t pausa = 0;
+volatile sig_atomic_t pausa = 0;
+volatile sig_atomic_t fine = 0;
 
 int stop = 0;
 
@@ -93,6 +95,7 @@ void killChildren()
 {
     stop = 0;
     for (size_t i = 0; i < visualizzatori; i++){
+        printf("Invio SIGUSR2 a PID %d\n", children[i]);
         kill(children[i], SIGUSR2);
     }
 }
@@ -186,17 +189,20 @@ void executeChildrenTurn(){
     if (*next_number_shm > N)
     {
         sem_post(sem);
-        exit(EXIT_SUCCESS);
+        return;
+        //exit(EXIT_SUCCESS);
     }
     sem_post(sem);
 }
 
 void childrenStop(){
+    printf("[PID %d] Uscita su SIGUSR2\n", getpid());
     exit(EXIT_SUCCESS);
 }
 
 void childrenHandler(int sig)
 {
+    printf("[PID %d] Ricevuto segnale: %d\n", getpid(), sig);
     switch (sig)
     {
     case SIGUSR1:
@@ -225,22 +231,22 @@ int createSemaforo(){
     return 0;
 }
 
-// //sistema pausa/ripresa senza chiamate di sistema 
-// void* inputThread(void* arg) {
-//     printf("[COMANDI] Premi 'p' per pausa, 'r' per ripresa: ");
-//     char comando;
-//     while (1) {
-//         comando = getchar();
-//         if (comando == 'p') {
-//             pausa = 1;
-//             printf("[PAUSA] Visualizzazione sospesa.\n");
-//         } else if (comando == 'r') {
-//             pausa = 0;
-//             printf("[RIPRESA] Visualizzazione ripresa.\n");
-//         }
-//     }
-//     return NULL;
-// }
+//sistema pausa/ripresa senza chiamate di sistema 
+void* inputThread(void* arg) {
+    printf("[COMANDI] Premi 'p' per pausa, 'r' per ripresa: \n");
+    char comando;
+    while (1) {
+        comando = getchar();
+        if (comando == 'p') {
+            pausa = 1;
+            printf("[PAUSA] Visualizzazione sospesa.\n");
+        } else if (comando == 'r') {
+            pausa = 0;
+            printf("[RIPRESA] Visualizzazione ripresa.\n");
+        }
+    }
+    return NULL;
+}
 
 
 void stopProcess(int sig)

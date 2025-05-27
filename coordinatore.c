@@ -7,7 +7,7 @@
 #include <semaphore.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
-
+#include <pthread.h>
 
 
 int visualizzatori;
@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
     pid_t pid;
     initialize();
     
-    // pthread_t tid;
-    // pthread_create(&tid, NULL, inputThread, NULL);
+    pthread_t tid;
+    pthread_create(&tid, NULL, inputThread, NULL);
     
     richiestaInputs(argc, argv, &visualizzatori, &N);
     shmAllocate();
@@ -61,9 +61,9 @@ int main(int argc, char *argv[])
 
     for (size_t i = 0; i < N; i++)
     {
-        // while (pausa) {
-        // pause(); // attesa passiva di un segnale
-        // }
+        while (pausa) {
+        sleep(1); // attesa passiva ma controllata
+        }
         assignView();
         waitConfirm();
         pidWritten(active_pid);
@@ -80,6 +80,11 @@ int main(int argc, char *argv[])
     sem_unlink(SEM_NAME);
     munmap(next_number_shm, sizeof(int));
     shm_unlink(SHM_NAME);
+
+    // Terminazione del thread di input
+    fine = 1;
+    pthread_cancel(tid);        // Forza la chiusura se bloccato su getchar()
+    pthread_join(tid, NULL);    // Attende la sua terminazione
 
     exit(EXIT_SUCCESS);
     
